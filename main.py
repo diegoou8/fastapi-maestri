@@ -1,7 +1,11 @@
 from fastapi import FastAPI
+from DBInformacionMaestri import DBInformacionMaestri_router
 
 app = FastAPI()
 
+# You can mount other routers too, for other endpoints in the future
+app.include_router(DBInformacionMaestri_router, prefix="/maestri", tags=["Maestri"])
+
 @app.get("/")
-def read_root():
-    return {"message": "FastAPI Maestri is live!"}
+def root():
+    return {"message": "Main API Root"}
