@@ -42,6 +42,7 @@ class QueryResponse(BaseModel):
     top_answer: str
     context: List[str]
     source: str
+    question: str
 
 # === Hybrid reranking function
 def hybrid_rerank(results, query, vector, expanded_terms=None):
@@ -136,7 +137,7 @@ def query_qdrant(request: QueryRequest):
             if not context:
                 raise HTTPException(status_code=404, detail="No matching knowledge found.")
 
-            return QueryResponse(top_answer=context[0], context=context, source="knowledge")
+            return QueryResponse(top_answer=context[0], context=context, source="knowledge", question=request.question)
 
         else:
             raise HTTPException(status_code=400, detail="Invalid source_type. Must be 'informacion' or 'productos'.")
