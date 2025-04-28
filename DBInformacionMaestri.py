@@ -5,50 +5,45 @@ import numpy as np
 from typing import List, Optional
 import re
 import os
-from openai import OpenAI  # ✅ Import OpenAI instead of SentenceTransformer
+import logging
+import traceback
+from openai import OpenAI
 from dotenv import load_dotenv
-load_dotenv()
 
-# ✅ Assign the API key
+# === Load environment variables
+load_dotenv()
 openai_api_key = os.getenv("OPENAI_API_KEY")
 
-# ✅ Use it here
-openai_client = OpenAI(
-    api_key=openai_api_key
-)
+# === Initialize OpenAI client
+openai_client = OpenAI(api_key=openai_api_key)
 
 DBInformacionMaestri_router = APIRouter()
 
-# === Connect to Qdrant ===
+# === Connect to Qdrant
 qdrant_knowledge = QdrantClient(host="vps.maestri.com.co", port=6333, https=False)
 qdrant_products = QdrantClient(host="vps.maestri.com.co", port=6333, https=False)
 collection_knowledge = "maestri_knowledge"
 collection_products = "maestri_products"
 
-# === Initialize OpenAI client ===
-openai_client = OpenAI(
-  api_key=openai_api_key
-)# ✅ set your API key here
-
 @DBInformacionMaestri_router.on_event("startup")
 def load_model():
     global model
-    model = openai_client  # ✅ No SentenceTransformer. OpenAI client will be used directly.
+    model = openai_client
 
-# === Request schema === (Classification for query nature)
+# === Request schema
 class QueryRequest(BaseModel):
     question: str
     top_k: int = 3
     source_type: str  # "informacion" or "productos"
     expanded_terms: Optional[List[str]] = []
 
-# === Response schema ===
+# === Response schema
 class QueryResponse(BaseModel):
     top_answer: str
     context: List[str]
     source: str
 
-# === Hybrid reranking ===
+# === Hybrid reranking function
 def hybrid_rerank(results, query, vector, expanded_terms=None):
     query_terms = query.lower().split()
     expanded_terms = [term.lower() for term in expanded_terms or []]
@@ -68,14 +63,12 @@ def hybrid_rerank(results, query, vector, expanded_terms=None):
         def count_exact_matches(keywords, field, weight):
             return sum(1 for kw in keywords if re.search(rf"\b{re.escape(kw)}\b", field)) * weight
 
-        # Traditional match bonus
         score += count_exact_matches(query_terms, product_name, 0.3)
         score += count_exact_matches(query_terms, tipo, 0.2)
         score += count_exact_matches(query_terms, category, 0.2)
         score += count_exact_matches(query_terms, description, 0.1)
         score += count_exact_matches(query_terms, alt_names, 0.1)
 
-        # Expanded terms bonus
         score += count_exact_matches(expanded_terms, product_name, 0.7)
         score += count_exact_matches(expanded_terms, tipo, 0.4)
         score += count_exact_matches(expanded_terms, category, 0.4)
@@ -86,24 +79,24 @@ def hybrid_rerank(results, query, vector, expanded_terms=None):
 
     return [r for _, r in sorted(boosted, key=lambda x: x[0], reverse=True)]
 
-# === Root endpoint ===
+# === Root endpoint
 @DBInformacionMaestri_router.get("/")
 def read_root():
     return {"message": "FastAPI Maestri is live!"}
 
-# === Main Query Endpoint ===
+# === Main Query endpoint
 @DBInformacionMaestri_router.post("/query", response_model=QueryResponse)
 def query_qdrant(request: QueryRequest):
     try:
         if model is None:
             raise HTTPException(status_code=500, detail="Model not loaded")
 
-        # ✅ Now generate OpenAI vector
+        # ✅ Generate OpenAI vector
         embedding = model.embeddings.create(
             model="text-embedding-3-small",
             input=request.question
         )
-        vector = np.array(embedding.data[0].embedding)  # 🔥 Here instead of model.encode(...)
+        vector = np.array(embedding.data[0].embedding)
 
         if request.source_type == "productos":
             results = qdrant_products.search(
@@ -123,6 +116,10 @@ def query_qdrant(request: QueryRequest):
                 )
 
             context = [format_product_payload(r.payload) for r in reranked]
+
+            if not context:
+                raise HTTPException(status_code=404, detail="No matching products found.")
+
             return QueryResponse(top_answer=context[0], context=context, source="products")
 
         elif request.source_type == "informacion":
@@ -135,10 +132,15 @@ def query_qdrant(request: QueryRequest):
             )
 
             context = [r.payload.get("text") for r in results if "text" in r.payload]
+
+            if not context:
+                raise HTTPException(status_code=404, detail="No matching knowledge found.")
+
             return QueryResponse(top_answer=context[0], context=context, source="knowledge")
 
         else:
             raise HTTPException(status_code=400, detail="Invalid source_type. Must be 'informacion' or 'productos'.")
 
     except Exception as e:
+        logging.error("Exception occurred:\n%s", traceback.format_exc())
         raise HTTPException(status_code=500, detail=str(e))
