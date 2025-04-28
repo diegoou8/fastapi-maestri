@@ -5,4 +5,4 @@ sentence-transformers
 numpy
 pandas
 python-dotenv
-
+openai
