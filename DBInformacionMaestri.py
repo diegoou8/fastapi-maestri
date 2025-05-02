@@ -20,8 +20,8 @@ openai_client = OpenAI(api_key=openai_api_key)
 DBInformacionMaestri_router = APIRouter()
 
 # === Connect to Qdrant
-qdrant_knowledge = QdrantClient(host="vps.maestri.com.co", port=6333, https=False)
-qdrant_products = QdrantClient(host="vps.maestri.com.co", port=6333, https=False)
+qdrant_knowledge = QdrantClient(host="qdrant", port=6333, https=False)
+qdrant_products = QdrantClient(host="qdrant", port=6333, https=False)
 collection_knowledge = "maestri_knowledge"
 collection_products = "maestri_products"
 
