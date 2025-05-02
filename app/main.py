@@ -5,3 +5,5 @@ app = FastAPI()
 
 # Include your router
 app.include_router(DBInformacionMaestri_router, prefix="/maestri")
+
+print("🔥 Running updated main.py with router")
