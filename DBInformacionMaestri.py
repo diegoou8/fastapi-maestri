@@ -121,7 +121,7 @@ def query_qdrant(request: QueryRequest):
             if not context:
                 raise HTTPException(status_code=404, detail="No matching products found.")
 
-            return QueryResponse(top_answer=context[0], context=context, source="products")
+            return QueryResponse(top_answer=context[0],context=context, source="products", question=request.question)
 
         elif request.source_type == "informacion":
             results = qdrant_knowledge.search(
@@ -137,7 +137,7 @@ def query_qdrant(request: QueryRequest):
             if not context:
                 raise HTTPException(status_code=404, detail="No matching knowledge found.")
 
-            return QueryResponse(top_answer=context[0], context=context, source="knowledge", question=request.question)
+            return QueryResponse(top_answer=context[0], context=context, source="informacion", question=request.question)
 
         else:
             raise HTTPException(status_code=400, detail="Invalid source_type. Must be 'informacion' or 'productos'.")
