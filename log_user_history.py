@@ -17,7 +17,7 @@ router = APIRouter()
 
 # === Clients
 openai_client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
-qdrant_client = QdrantClient(host="vps.maestri.com.co", port=6333, https=False)
+qdrant_client = QdrantClient(host="qdrant", port=6333, https=False)
 
 # === Collection configuration
 collection_name = "user_history"
