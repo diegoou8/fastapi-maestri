@@ -9,6 +9,8 @@ import logging
 import traceback
 from openai import OpenAI
 from dotenv import load_dotenv
+from addtocart import add_product_to_cart, AddToCartRequest
+
 
 # === Load environment variables
 load_dotenv()
@@ -84,6 +86,21 @@ def hybrid_rerank(results, query, vector, expanded_terms=None):
 @DBInformacionMaestri_router.get("/")
 def read_root():
     return {"message": "FastAPI Maestri is live!"}
+
+
+@DBInformacionMaestri_router.post("/add-to-cart")
+def add_to_cart(request: AddToCartRequest):
+    try:
+        add_product_to_cart(
+            user_id=request.user_id,
+            product_id=request.product_id,
+            product_url=request.product_url,
+            quantity=request.quantity
+        )
+        return {"message": "Product added to cart successfully"}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
 
 # === Main Query endpoint
 @DBInformacionMaestri_router.post("/query", response_model=QueryResponse)
