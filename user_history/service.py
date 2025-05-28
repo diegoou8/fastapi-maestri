@@ -19,7 +19,7 @@ qdrant_client = QdrantClient(host="qdrant", port=6333, https=False)
 # Lazily initialize OpenAI client
 def get_openai_client():
     from openai import OpenAI
-    api_key = os.getenv("OPENAI_API_KEY2")
+    api_key = os.getenv("OPENAI_API_KEY")
     if not api_key:
         raise RuntimeError("OPENAI_API_KEY not found in environment variables.")
     return OpenAI(api_key=api_key)
