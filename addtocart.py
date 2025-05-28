@@ -12,26 +12,41 @@ class AddToCartRequest(BaseModel):
 def add_product_to_cart(user_id: str, product_id: str, product_url: str, quantity: int = 1):
     try:
         conn = mysql.connector.connect(
-            host="localhost",
-            user="root",
-            password="your_mysql_password",
+            host="62.72.7.225",
+            user="fastapi",
+            password="your_secure_password",
             database="ecommerce"
         )
         cursor = conn.cursor()
 
-        cursor.execute("SELECT cart_id FROM cart_sessions WHERE user_id = %s", (user_id,))
+        # Get or create a cart session for today
+        cursor.execute("""
+            SELECT cart_id FROM cart_sessions 
+            WHERE user_id = %s AND DATE(created_at) = CURDATE()
+        """, (user_id,))
         result = cursor.fetchone()
+
         if result:
             session_id = result[0]
         else:
-            cursor.execute("INSERT INTO cart_sessions (user_id) VALUES (%s)", (user_id,))
+            cursor.execute("""
+                INSERT INTO cart_sessions (user_id) 
+                VALUES (%s)
+            """, (user_id,))
             session_id = cursor.lastrowid
 
-        cursor.execute("""
-            INSERT INTO cart_items (session_id, product_id, product_url, quantity)
-            VALUES (%s, %s, %s, %s)
-            ON DUPLICATE KEY UPDATE quantity = quantity + %s
-        """, (session_id, product_id, product_url, quantity, quantity))
+        # Insert/update or delete cart item
+        if quantity == 0:
+            cursor.execute("""
+                DELETE FROM cart_items 
+                WHERE session_id = %s AND product_id = %s
+            """, (session_id, product_id))
+        else:
+            cursor.execute("""
+                INSERT INTO cart_items (session_id, product_id, product_url, quantity)
+                VALUES (%s, %s, %s, %s)
+                ON DUPLICATE KEY UPDATE quantity = quantity + %s
+            """, (session_id, product_id, product_url, quantity, quantity))
 
         conn.commit()
 
@@ -44,4 +59,4 @@ def add_product_to_cart(user_id: str, product_id: str, product_url: str, quantit
         if conn:
             conn.close()
 
-    return {"message": "Product added to cart successfully"}
+    return {"message": "Product updated in cart successfully"}
