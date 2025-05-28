@@ -1,21 +1,15 @@
-from pydantic import BaseModel
-from typing import Optional
-import mysql.connector
+import pymysql
 import logging
-
-class AddToCartRequest(BaseModel):
-    user_id: str
-    product_id: str
-    product_url: str
-    quantity: Optional[int] = 1
+import os
 
 def add_product_to_cart(user_id: str, product_id: str, product_url: str, quantity: int = 1):
     try:
-        conn = mysql.connector.connect(
-            host="62.72.7.225",
-            user="fastapi",
-            password="your_secure_password",
-            database="ecommerce"
+        conn = pymysql.connect(
+        host="62.72.7.225",
+        user="fastapi",
+        password="your_secure_password",
+        database="ecommerce",
+        cursorclass=pymysql.cursors.DictCursor
         )
         cursor = conn.cursor()
 

@@ -1,13 +1,30 @@
+from dotenv import load_dotenv
+from pathlib import Path
+import os
 from fastapi import FastAPI
-from DBInformacionMaestri import DBInformacionMaestri_router
-from log_user_history import router as LogUserHistoryRouter  # ✅ Add this line
+from DBInformacionMaestri.routes import DBInformacionMaestri_router
+from addtocart.routes import addtocart_router
+from user_history.routes import user_history_router
 
+# ✅ Always load from repo root, regardless of where the file is run from
+def load_env():
+    root_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
+    dotenv_path = os.path.join(root_dir, ".env")
+    if os.path.exists(dotenv_path):
+        load_dotenv(dotenv_path)
+    else:
+        None
+
+load_env()
+
+# Create app
 app = FastAPI()
 
-# Include both routers
+# Include routers
 app.include_router(DBInformacionMaestri_router, prefix="/maestri", tags=["Maestri"])
-app.include_router(LogUserHistoryRouter, prefix="/maestri", tags=["UserHistory"])  # ✅ Register this too
+app.include_router(addtocart_router, prefix="/cart", tags=["Cart"])
+app.include_router(user_history_router, prefix="/user", tags=["User History"])
 
 @app.get("/")
 def root():
-    return {"message": "Main API Root"}
+    return {"message": "FastAPI Maestri Root"}
