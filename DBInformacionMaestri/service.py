@@ -27,7 +27,7 @@ collection_products = "maestri_products"
 # === Delayed initialization of OpenAI
 def initialize_model():
     global model
-    openai_api_key = os.getenv("OPENAI_API_KEY2")
+    openai_api_key = os.getenv("OPENAI_API_KEY")
     if not openai_api_key:
         raise RuntimeError("OPENAI_API_KEY not found in environment variables.")
     model = OpenAI(api_key=openai_api_key)
