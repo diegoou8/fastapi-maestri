@@ -40,3 +40,10 @@ class CartItem(BaseModel):
 class ViewCartResponse(BaseModel):
     session_id: int
     items: List[CartItem]
+
+class RemoveFromCartRequest(BaseModel):
+    user_id: str
+    product_id: str
+
+class CreateCartRequest(BaseModel):
+    user_id: str
