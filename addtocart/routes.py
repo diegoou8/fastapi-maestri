@@ -1,6 +1,9 @@
 from fastapi import APIRouter, HTTPException
 from models.schemas import AddToCartRequest, RemoveFromCartRequest, CreateCartRequest
 from addtocart.service import add_product_to_cart, remove_product_from_cart, create_cart_session
+from models.schemas import ViewCartRequest, ViewCartResponse
+from addtocart.service import get_cart_contents
+
 
 addtocart_router = APIRouter()
 
@@ -24,3 +27,7 @@ def remove_from_cart(request: RemoveFromCartRequest):
 def create_session(request: CreateCartRequest):
     session_id = create_cart_session(request.user_id)
     return {"session_id": session_id}
+
+@addtocart_router.post("/view-cart", response_model=ViewCartResponse)
+def view_cart(request: ViewCartRequest):
+    return get_cart_contents(request.user_id)

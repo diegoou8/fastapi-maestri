@@ -82,3 +82,28 @@ def remove_product_from_cart(user_id: str, product_id: str):
     finally:
         cursor.close()
         conn.close()
+        
+def get_cart_contents(user_id: str):
+    try:
+        session_id = create_cart_session(user_id)
+        conn = get_db_connection()
+        cursor = conn.cursor()
+
+        cursor.execute("""
+            SELECT product_id, product_url, quantity
+            FROM cart_items
+            WHERE session_id = %s
+        """, (session_id,))
+        items = cursor.fetchall()
+
+        return {
+            "session_id": session_id,
+            "items": items
+        }
+
+    except Exception as e:
+        logging.error(f"View cart error: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+    finally:
+        cursor.close()
+        conn.close()
