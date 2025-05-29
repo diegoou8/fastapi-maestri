@@ -1,18 +1,26 @@
 from fastapi import APIRouter, HTTPException
-from models.schemas import AddToCartRequest
-from addtocart.service import add_product_to_cart
+from models.schemas import AddToCartRequest, RemoveFromCartRequest, CreateCartRequest
+from addtocart.service import add_product_to_cart, remove_product_from_cart, create_cart_session
 
 addtocart_router = APIRouter()
 
 @addtocart_router.post("/add-to-cart")
 def add_to_cart(request: AddToCartRequest):
-    try:
-        add_product_to_cart(
-            user_id=request.user_id,
-            product_id=request.product_id,
-            product_url=request.product_url,
-            quantity=request.quantity
-        )
-        return {"message": "Product updated in cart successfully"}
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
+    return add_product_to_cart(
+        user_id=request.user_id,
+        product_id=request.product_id,
+        product_url=request.product_url,
+        quantity=request.quantity
+    )
+
+@addtocart_router.post("/remove-from-cart")
+def remove_from_cart(request: RemoveFromCartRequest):
+    return remove_product_from_cart(
+        user_id=request.user_id,
+        product_id=request.product_id
+    )
+
+@addtocart_router.post("/create-cart-session")
+def create_session(request: CreateCartRequest):
+    session_id = create_cart_session(request.user_id)
+    return {"session_id": session_id}
