@@ -1,6 +1,7 @@
 from pydantic import BaseModel
 from typing import List, Optional
 
+
 class AddToCartRequest(BaseModel):
     user_id: str
     product_id: str
@@ -27,3 +28,15 @@ class HistoryRecord(BaseModel):
 
 class SuccessResponse(BaseModel):
     status: str
+
+class ViewCartRequest(BaseModel):
+    user_id: str
+
+class CartItem(BaseModel):
+    product_id: str
+    product_url: str
+    quantity: int
+
+class ViewCartResponse(BaseModel):
+    session_id: int
+    items: List[CartItem]
