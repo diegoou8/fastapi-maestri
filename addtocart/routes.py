@@ -13,7 +13,7 @@ def add_to_cart(request: AddToCartRequest):
         user_id=request.user_id,
         product_id=request.product_id,
         product_url=request.product_url,
-        quantity=request.quantity
+        quantity=request.quantity,
         price=request.price,
         url_imagen=request.url_imagen
     )
