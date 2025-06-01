@@ -43,17 +43,20 @@ def create_cart_session(user_id: str) -> int:
         conn.close()
 
 
-def add_product_to_cart(user_id: str, product_id: str, product_url: str, quantity: int = 1):
+def add_product_to_cart(user_id: str, product_id: str, product_url: str, quantity: int = 1, price: float = 0.0, url_imagen: str = ""):
     try:
         session_id = create_cart_session(user_id)
         conn = get_db_connection()
         cursor = conn.cursor()
 
         cursor.execute("""
-            INSERT INTO cart_items (session_id, product_id, product_url, quantity)
-            VALUES (%s, %s, %s, %s)
-            ON DUPLICATE KEY UPDATE quantity = quantity + %s
-        """, (session_id, product_id, product_url, quantity, quantity))
+            INSERT INTO cart_items (session_id, product_id, product_url, quantity, price, url_imagen)
+            VALUES (%s, %s, %s, %s, %s, %s)
+            ON DUPLICATE KEY UPDATE 
+                quantity = quantity + %s,
+                price = VALUES(price),
+                url_imagen = VALUES(url_imagen)
+        """, (session_id, product_id, product_url, quantity, price, url_imagen, quantity))
 
         conn.commit()
         return {"message": "Product added to cart"}
