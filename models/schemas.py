@@ -7,6 +7,8 @@ class AddToCartRequest(BaseModel):
     product_id: str
     product_url: str
     quantity: Optional[int] = 1
+    price: Optional[float] = 0.0
+    url_imagen: Optional[str] = ""
 
 class QueryRequest(BaseModel):
     question: str
