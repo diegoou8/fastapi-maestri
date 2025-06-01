@@ -27,6 +27,17 @@ logger = logging.getLogger(__name__)
 
 
 def get_all_webflow_items():
+
+    # Load environment variables
+    WEBFLOW_API_TOKEN = "026a04fef179155b6a04fbfd49e07c722e7621b91ad98961f6f298987c070180"
+    COLLECTION_ID = "6660d3a96fe3b376c162563e"
+    BASE_URL = f"https://api.webflow.com/v2/collections/{COLLECTION_ID}/items"
+
+    HEADERS = {
+        "Authorization": f"Bearer {WEBFLOW_API_TOKEN}",
+        "accept-version": "2.0.0"
+    }
+
     offset = 0
     limit = 100
     all_items = []
@@ -99,16 +110,6 @@ def get_all_products():
     openai_client = OpenAI(
         api_key=openai_api_key
     )
-    # Load environment variables
-    WEBFLOW_API_TOKEN = "026a04fef179155b6a04fbfd49e07c722e7621b91ad98961f6f298987c070180"
-    COLLECTION_ID = "6660d3a96fe3b376c162563e"
-    BASE_URL = f"https://api.webflow.com/v2/collections/{COLLECTION_ID}/items"
-
-    HEADERS = {
-        "Authorization": f"Bearer {WEBFLOW_API_TOKEN}",
-        "accept-version": "2.0.0"
-    }
-
 
     # Setup logging
     logging.basicConfig(
