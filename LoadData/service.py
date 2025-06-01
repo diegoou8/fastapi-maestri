@@ -183,7 +183,7 @@ def get_all_products():
     for _, row in df.iterrows():
         if pd.isna(row.get("name")) or pd.isna(row.get("precio")) or row.get("isArchived") is True or row.get("isDraft") is True or row.get("lastPublished") is None:
             continue
-
+        id=clean(row.get("id"))
         product_name = clean(row.get("name"))
         bodega = clean(row.get("bodega"))
         tipo = clean(row.get("tipo"))
@@ -223,6 +223,7 @@ def get_all_products():
 
         # Payload for Qdrant
         payload = {
+            "id": id,
             "product_name": product_name,
             "bodega": bodega,
             "tipo": tipo,
