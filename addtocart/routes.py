@@ -1,8 +1,8 @@
 from fastapi import APIRouter, HTTPException
 from models.schemas import AddToCartRequest, RemoveFromCartRequest, CreateCartRequest
-from addtocart.service import add_product_to_cart, remove_product_from_cart, create_cart_session
+from addtocart.service import add_product_to_cart, remove_product_from_cart, create_cart_session,foxycart_payload
 from models.schemas import ViewCartRequest, ViewCartResponse
-from addtocart.service import get_cart_contents
+from addtocart.service import get_cart_contents, foxycart_payload
 
 
 addtocart_router = APIRouter()
@@ -31,3 +31,7 @@ def create_session(request: CreateCartRequest):
 @addtocart_router.post("/view-cart", response_model=ViewCartResponse)
 def view_cart(request: ViewCartRequest):
     return get_cart_contents(request.user_id)
+
+@addtocart_router.get("/foxycart-payload")
+def get_foxycart_checkout_url(user_id: str):
+    return foxycart_payload(user_id)
