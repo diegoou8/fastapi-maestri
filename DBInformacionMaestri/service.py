@@ -93,7 +93,7 @@ def run_query(request: QueryRequest) -> QueryResponse:
             def format_product_payload(p):
                 return "\n".join(
                     f"{k.replace('_', ' ').capitalize()}: {v}" for k, v in p.items() if v and k in [
-                        "product_name", "bodega", "tipo", "region", "precio", "notas", "maridaje", "descripcion"]
+                        "id","product_name", "bodega", "tipo", "region", "precio", "notas", "maridaje", "descripcion", "url",]
                 )
 
             context = [format_product_payload(r.payload) for r in reranked]
