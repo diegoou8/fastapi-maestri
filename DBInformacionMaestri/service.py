@@ -91,10 +91,12 @@ def run_query(request: QueryRequest) -> QueryResponse:
             reranked = hybrid_rerank(results, request.question, vector, request.expanded_terms)[:request.top_k]
 
             def format_product_payload(p):
-                return "\n".join(
-                    f"{k.replace('_', ' ').capitalize()}: {v}" for k, v in p.items() if v and k in [
-                        "id","product_name", "bodega", "tipo", "region", "precio", "notas", "maridaje", "descripcion", "url",]
-                )
+                return {
+                    k: v for k, v in p.items() if k in [
+                        "id", "product_name", "bodega", "tipo", "region", "precio",
+                        "notas", "maridaje", "descripcion", "url", "url_imagen"
+                    ] and v
+                }
 
             context = [format_product_payload(r.payload) for r in reranked]
 
