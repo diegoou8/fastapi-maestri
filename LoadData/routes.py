@@ -9,4 +9,6 @@ def sync_products():
         result = get_all_products()
         return result
     except Exception as e:
+        import traceback
+        traceback.print_exc()  # 👈 prints full error to Docker logs
         raise HTTPException(status_code=500, detail=f"Sync failed: {str(e)}")
