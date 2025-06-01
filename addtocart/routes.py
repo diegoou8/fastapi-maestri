@@ -14,6 +14,8 @@ def add_to_cart(request: AddToCartRequest):
         product_id=request.product_id,
         product_url=request.product_url,
         quantity=request.quantity
+        price=request.price,
+        url_imagen=request.url_imagen
     )
 
 @addtocart_router.post("/remove-from-cart")
