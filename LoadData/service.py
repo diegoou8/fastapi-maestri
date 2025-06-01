@@ -25,7 +25,34 @@ logging.basicConfig(
 )
 logger = logging.getLogger(__name__)
 
-
+# Define top-level fields (outside fieldData)
+top_fields = [
+    "id",
+    "lastPublished",
+    "lastUpdated",
+    "isArchived",
+    "isDraft"
+]
+# Define selected fieldData fields
+fielddata_fields = [
+    "gr-ml",
+    "ocasion",  # make sure spelling is consistent with Webflow — was 'ocasion' or 'occasion'?
+    "precio",
+    "maridaje-1",
+    "maridaje-2",
+    "pasillo",
+    "bodega",
+    "name",
+    "descripcion",
+    "notas-de-cata",
+    "tipo",
+    "slug",
+    "descuento",
+    "descuento-2x1",
+    "descuento-3x2",
+    "productoreserva",
+    "descuento-off"
+]
 def get_all_webflow_items():
 
     # Load environment variables
@@ -117,36 +144,6 @@ def get_all_products():
         format="%(asctime)s - %(levelname)s - %(message)s"
     )
     logger = logging.getLogger(__name__)
-
-    # Define top-level fields (outside fieldData)
-    top_fields = [
-        "id",
-        "lastPublished",
-        "lastUpdated",
-        "isArchived",
-        "isDraft"
-    ]
-
-    # Define selected fieldData fields
-    fielddata_fields = [
-        "gr-ml",
-        "ocasion",  # make sure spelling is consistent with Webflow — was 'ocasion' or 'occasion'?
-        "precio",
-        "maridaje-1",
-        "maridaje-2",
-        "pasillo",
-        "bodega",
-        "name",
-        "descripcion",
-        "notas-de-cata",
-        "tipo",
-        "slug",
-        "descuento",
-        "descuento-2x1",
-        "descuento-3x2",
-        "productoreserva",
-        "descuento-off"
-    ]
 
     # Get and transform all items
     items = get_all_webflow_items()
