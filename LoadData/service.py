@@ -171,7 +171,7 @@ def get_all_products():
         return response.data[0].embedding
 
     # Connect to Qdrant
-    client = QdrantClient(host="vps.maestri.com.co", port=6333, https=False)
+    client = QdrantClient(host="qdrant", port=6333, https=False)
     collection_name = "maestri_products"
     embedding_size = 1536  # ✅ OpenAI embedding size is 1536
 
