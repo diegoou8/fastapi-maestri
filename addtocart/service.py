@@ -129,12 +129,12 @@ def foxycart_payload(user_id: str):
         qdrant_filter = Filter(should=filter_conditions)
 
         results, _ = client.scroll(
-            collection_name="maestri_products",
-            with_payload=True,
-            with_vectors=False,
-            limit=100,
-            filter=qdrant_filter
-        )
+        collection_name="maestri_products",
+        with_payload=True,
+        with_vectors=False,
+        limit=100,
+        query_filter=qdrant_filter  
+     )
 
         if not results:
             raise HTTPException(status_code=404, detail="No matching products found in Qdrant")
