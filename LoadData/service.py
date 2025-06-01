@@ -6,6 +6,7 @@ import traceback
 import requests
 import pandas as pd
 import numpy as np
+import pymysql
 
 from typing import List
 from bs4 import BeautifulSoup
@@ -103,6 +104,104 @@ def get_all_webflow_items():
     return all_items
 
 
+def insert_sql(items):
+    """
+    Function to insert products into SQL database.
+    This function is a placeholder and should be implemented based on your SQL database schema.
+    """
+    import mysql.connector
+
+    # Connect to MySQL once before the loop
+    mysql_conn = pymysql.connect(
+        host="62.72.7.225",
+        user="fastapi",
+        password="your_secure_password",
+        database="ecommerce",
+        charset="utf8mb4",
+        cursorclass=pymysql.cursors.DictCursor
+    )
+    mysql_cursor = mysql_conn.cursor()
+
+    # 🔴 TRUNCATE TABLE BEFORE INSERTING
+    mysql_cursor.execute("TRUNCATE TABLE products")
+    mysql_conn.commit()
+    def clean(text):
+        if pd.isna(text): return ""
+        return str(text).strip()
+        # Get and transform all items
+    def strip_html(text):
+        return BeautifulSoup(text, "html.parser").get_text(separator=" ", strip=True)
+    # Get all items from Webflow
+    items = items
+    flattened_data = [extract_selected_fields(item) for item in items]
+
+    # Create the DataFrame
+    df = pd.DataFrame(flattened_data)
+    # Add inside your for loop, right after you clean and build each row:
+    for _, row in df.iterrows():
+        if pd.isna(row.get("name")) or pd.isna(row.get("precio")) or row.get("isArchived") is True or row.get("isDraft") is True or row.get("lastPublished") is None:
+            continue
+
+        id = clean(row.get("id"))
+        product_name = clean(row.get("name"))
+        bodega = clean(row.get("bodega"))
+        tipo = clean(row.get("tipo"))
+        maridaje1 = clean(row.get("maridaje-1"))
+        maridaje2 = clean(row.get("maridaje-2"))
+        maridaje = " y ".join([m for m in [maridaje1, maridaje2] if m])
+        notas = clean(row.get("notas-de-cata"))
+        descripcion = strip_html(clean(row.get("descripcion")))
+        precio = clean(row.get("precio"))
+        category = clean(row.get("pasillo"))
+        gr_ml = clean(row.get("gr-ml"))
+        ocasion = clean(row.get("ocasion"))
+        slug = clean(row.get("slug"))
+        url = f"https://maestri.com.co/products/{slug}" if slug else ""
+        url_imagen = row.get("imagen_url", "") if not pd.isna(row.get("imagen_url")) else ""
+
+        descuento = bool(row.get("descuento", False))
+        descuento_2x1 = bool(row.get("descuento-2x1", False))
+        descuento_3x2 = bool(row.get("descuento-3x2", False))
+        productoreserva = bool(row.get("productoreserva", False))
+        descuento_off = bool(row.get("descuento-off", False))
+        alternate_names = ""
+
+        # Insert into MySQL
+        insert_sql = """
+            INSERT INTO products (
+                id, product_name, bodega, tipo, precio, notas, descripcion, maridaje, category,
+                gr_ml, ocasion, url, url_imagen, descuento, descuento_2x1, descuento_3x2,
+                productoreserva, descuento_off, alternate_names
+            ) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
+            ON DUPLICATE KEY UPDATE
+                product_name = VALUES(product_name),
+                bodega = VALUES(bodega),
+                tipo = VALUES(tipo),
+                precio = VALUES(precio),
+                notas = VALUES(notas),
+                descripcion = VALUES(descripcion),
+                maridaje = VALUES(maridaje),
+                category = VALUES(category),
+                gr_ml = VALUES(gr_ml),
+                ocasion = VALUES(ocasion),
+                url = VALUES(url),
+                url_imagen = VALUES(url_imagen),
+                descuento = VALUES(descuento),
+                descuento_2x1 = VALUES(descuento_2x1),
+                descuento_3x2 = VALUES(descuento_3x2),
+                productoreserva = VALUES(productoreserva),
+                descuento_off = VALUES(descuento_off),
+                alternate_names = VALUES(alternate_names)
+        """
+        mysql_cursor.execute(insert_sql, (
+            id, product_name, bodega, tipo, precio, notas, descripcion, maridaje, category,
+            gr_ml, ocasion, url, url_imagen, descuento, descuento_2x1, descuento_3x2,
+            productoreserva, descuento_off, alternate_names
+        ))
+        mysql_conn.commit()
+    mysql_cursor.close()
+    mysql_conn.close()
+    return {"message": "SQL Insert completed successfully."}
 
 # Function to flatten and extract only desired fields
 def extract_selected_fields(item):
@@ -167,7 +266,7 @@ def get_all_products():
             input=text
         )
         return response.data[0].embedding
-
+    insert_sql(items)
     # Connect to Qdrant
     client = QdrantClient(host="qdrant", port=6333, https=False)
     collection_name = "maestri_products"
