@@ -98,7 +98,18 @@ def run_query(request: QueryRequest) -> QueryResponse:
                     ] and v
                 }
 
-            context = [format_product_payload(r.payload) for r in reranked]
+            context = [
+                        "\n".join(
+                            f"{k.replace('_', ' ').capitalize()}: {v}" 
+                            for k, v in r.payload.items() 
+                            if v and k in [
+                                "id", "product_name", "bodega", "tipo", "region", "precio", 
+                                "notas", "maridaje", "descripcion", "url", "url_imagen"
+                            ]
+                        )
+                        for r in reranked
+                    ]
+
 
             if not context:
                 raise HTTPException(status_code=404, detail="No matching products found.")
