@@ -31,4 +31,5 @@ async def sheet_products(payload: RowsPayload):
     except Exception as e:
         import traceback
         traceback.print_exc()  # 👈 prints full error to Docker logs
-        raise HTTPException(status_code=500, detail=f"Read failed: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Read failed: {str(e)}") 
+    #placeholder
