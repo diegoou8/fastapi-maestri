@@ -1,6 +1,7 @@
 from fastapi import APIRouter, HTTPException, Request
 from LoadData.service import get_all_products, get_rows_sheet_products
-
+import json
+from typing import List, Dict, Any
 load_data_router = APIRouter()
 
 
@@ -18,26 +19,34 @@ def sync_products():
 @load_data_router.post("/sheet-products")
 async def sheet_products(request: Request):
     """
-    Accepts JSON in any of these shapes:
-      { "rows": [ … ] }
-      { "body": { "rows": [ … ] } }
+    Accepts:
+      { "rows": […] }
+      { "body": "{\\"rows\\":[…]}" }  (n8n stringifies it)
+      { "body": { "rows": […] } }     (n8n object wrapper)
     """
     try:
         payload = await request.json()
 
-        # 1) Unwrap if your n8n is nesting under "body"
+        # 1) If n8n wrapped as "body": "<stringified JSON>"
         if isinstance(payload, dict) and "body" in payload:
-            payload = payload["body"]
+            body = payload["body"]
+            if isinstance(body, str):
+                try:
+                    payload = json.loads(body)
+                except json.JSONDecodeError:
+                    raise HTTPException(
+                        status_code=422,
+                        detail="Invalid JSON in `body` string"
+                    )
+            elif isinstance(body, dict):
+                payload = body
 
-        # 2) Extract rows and validate
+        # 2) Extract and validate rows
         rows = payload.get("rows") if isinstance(payload, dict) else None
         if not isinstance(rows, list):
-            raise HTTPException(
-                status_code=422,
-                detail="Invalid payload: missing `rows` array"
-            )
+            raise HTTPException(422, detail="Invalid payload: missing `rows` array")
 
-        # 3) Process
+        # 3) Process into DataFrame
         df = get_rows_sheet_products(rows)
 
         return {
@@ -47,8 +56,7 @@ async def sheet_products(request: Request):
         }
 
     except HTTPException:
-        # re-raise our validation errors
-        raise
+        raise  # re-throw validation errors
     except Exception as e:
         import traceback; traceback.print_exc()
         raise HTTPException(status_code=500, detail=f"Read failed: {e}")
