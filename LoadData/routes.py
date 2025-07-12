@@ -1,12 +1,8 @@
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, HTTPException, Request
 from LoadData.service import get_all_products, get_rows_sheet_products
-from pydantic import BaseModel
-from typing import List, Dict, Any
 
 load_data_router = APIRouter()
 
-class RowsPayload(BaseModel):
-    rows: List[Dict[str, Any]]
 
 @load_data_router.post("/sync-products")
 def sync_products():
@@ -17,19 +13,42 @@ def sync_products():
         import traceback
         traceback.print_exc()  # 👈 prints full error to Docker logs
         raise HTTPException(status_code=500, detail=f"Sync failed: {str(e)}")
+    
+    
 @load_data_router.post("/sheet-products")
-async def sheet_products(payload: RowsPayload):
+async def sheet_products(request: Request):
+    """
+    Accepts JSON in any of these shapes:
+      { "rows": [ … ] }
+      { "body": { "rows": [ … ] } }
+    """
     try:
-        df = get_rows_sheet_products(payload.rows)
+        payload = await request.json()
+
+        # 1) Unwrap if your n8n is nesting under "body"
+        if isinstance(payload, dict) and "body" in payload:
+            payload = payload["body"]
+
+        # 2) Extract rows and validate
+        rows = payload.get("rows") if isinstance(payload, dict) else None
+        if not isinstance(rows, list):
+            raise HTTPException(
+                status_code=422,
+                detail="Invalid payload: missing `rows` array"
+            )
+
+        # 3) Process
+        df = get_rows_sheet_products(rows)
+
         return {
             "status":         "success",
-            "rows_received":  len(payload.rows),
+            "rows_received":  len(rows),
             "rows_processed": len(df),
-            # uncomment if you want to inspect the processed data:
-            # "data": df.to_dict(orient="records")
         }
+
+    except HTTPException:
+        # re-raise our validation errors
+        raise
     except Exception as e:
-        import traceback
-        traceback.print_exc()  # 👈 prints full error to Docker logs
-        raise HTTPException(status_code=500, detail=f"Read failed: {str(e)}") 
-    #placeholder
+        import traceback; traceback.print_exc()
+        raise HTTPException(status_code=500, detail=f"Read failed: {e}")
