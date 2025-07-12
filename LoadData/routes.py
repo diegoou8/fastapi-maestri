@@ -1,5 +1,5 @@
 from fastapi import APIRouter, HTTPException, Request
-from LoadData.service import get_all_products, get_rows_sheet_products
+from LoadData.service import get_all_products, get_rows_sheet_products,sync_items_individually
 import json
 from typing import List, Dict, Any
 load_data_router = APIRouter()
@@ -48,11 +48,13 @@ async def sheet_products(request: Request):
 
         # 3) Process into DataFrame
         df = get_rows_sheet_products(rows)
+        count = sync_items_individually(df)
 
         return {
             "status":         "success",
             "rows_received":  len(rows),
             "rows_processed": len(df),
+            "updated_count": count
         }
 
     except HTTPException:
