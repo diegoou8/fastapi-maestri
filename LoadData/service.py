@@ -7,11 +7,12 @@ import requests
 import pandas as pd
 import numpy as np
 import pymysql
+import json
 
 from typing import List, Dict, Any
 from bs4 import BeautifulSoup
 from dotenv import load_dotenv
-from fastapi import HTTPException
+from fastapi import HTTPException, Request
 
 from openai import OpenAI
 from qdrant_client import QdrantClient
@@ -406,4 +407,77 @@ def get_rows_sheet_products(rows: List[Dict[str, Any]]) -> pd.DataFrame:
 
     # now build your dataframe
     df = pd.DataFrame(processed)
+    
     return df
+
+
+def sync_items_individually(dataframe) -> List[Dict[str, Any]]:
+    """
+    For each row, send a PATCH updating exactly that one item.
+    Returns a list of the Webflow responses.
+    """
+
+    # Load environment variables
+    WEBFLOW_API_TOKEN = "026a04fef179155b6a04fbfd49e07c722e7621b91ad98961f6f298987c070180"
+    COLLECTION_ID = "6660d3a96fe3b376c162563e"
+
+    BASE_URL = f"https://api.webflow.com/v2/collections/{COLLECTION_ID}/items/live"
+    HEADERS = {
+        "Authorization": f"Bearer {WEBFLOW_API_TOKEN}",
+        "Content-Type":  "application/json",
+        "Accept-Version": "1.0.0",
+    }
+    results = []
+
+    # First, transform your raw rows into the clean records:
+    df = dataframe.copy()
+    records = df.to_dict(orient="records")
+    success_count = 0
+
+    for rec in records:
+        payload = {
+            "items": [
+                {
+                    "id": rec["id"],
+                    "cmsLocaleId": rec.get("locale_id", rec.get("Locale ID")),  # whichever key holds your locale
+                    "fieldData": {
+                        "name":               rec["product_name"],
+                        "slug":               rec["slug"],
+                        "bodega":             rec["bodega"],
+                        "tipo":               rec["tipo"],
+                        "maridaje":           rec["maridaje"],
+                        "notas":              rec["notas"],
+                        "descripcion":        rec["descripcion"],
+                        "precio":             rec["precio"],
+                        "categoria":          rec["category"],
+                        "gr-ml":              rec["gr_ml"],
+                        "ocasion":            rec["ocasion"],
+                        "url":                rec["url"],
+                        "descuento":          rec["descuento"],
+                        "descuento-2x1":      rec["descuento_2x1"],
+                        "descuento-3x2":      rec["descuento_3x2"],
+                        "productoreserva":    rec["productoreserva"],
+                        "descuento-off":      rec["descuento_off"],
+                        "imagen-del-producto": {
+                            "url": rec["url_imagen"]
+                        },
+                        "draft":              rec["draft"]
+                    }
+                }
+            ]
+        }
+        # single-item endpoint
+        item_url = (
+            f"https://api.webflow.com/v2/collections/"
+            f"{COLLECTION_ID}/items/{rec['id']}/live?skipInvalidFiles=true"
+        )
+
+        resp = requests.patch(item_url, headers=HEADERS, json=payload, timeout=10)
+
+        if resp.ok:
+            success_count += 1
+        else:
+            # optionally log: rec['id'], resp.status_code, resp.text
+            print(f"Failed {rec['id']}: {resp.status_code} {resp.text}")
+
+    return success_count
