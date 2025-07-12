@@ -352,7 +352,7 @@ def get_all_products():
     return {"message": f"Inserted {len(points)} products into Qdrant collection: {collection_name}"}
 
 
-def get_rows_sheet_products(payload: List[dict]) -> pd.DataFrame:
+def get_rows_sheet_products(rows: List[Dict[str, Any]]) -> pd.DataFrame:
 
     """
     Function to get rows from the Google sheet products once any row is updated.
@@ -364,8 +364,7 @@ def get_rows_sheet_products(payload: List[dict]) -> pd.DataFrame:
         # Get and transform all items
     def strip_html(text):
         return BeautifulSoup(text, "html.parser").get_text(separator=" ", strip=True)
-    # Extract rows from payload
-    rows: List[Dict[str, Any]] = payload["rows"]    # extract the list
+
     processed = []
     for row in rows:
         # skip if missing required fields or marked for deletion
