@@ -8,7 +8,7 @@ import pandas as pd
 import numpy as np
 import pymysql
 
-from typing import List
+from typing import List, Dict, Any
 from bs4 import BeautifulSoup
 from dotenv import load_dotenv
 from fastapi import HTTPException
@@ -350,3 +350,61 @@ def get_all_products():
     client.upsert(collection_name=collection_name, points=points)
     print(f"✅ Inserted {len(points)} products into Qdrant collection: {collection_name}")
     return {"message": f"Inserted {len(points)} products into Qdrant collection: {collection_name}"}
+
+
+def get_rows_sheet_products(payload: List[dict]) -> pd.DataFrame:
+
+    """
+    Function to get rows from the Google sheet products once any row is updated.
+    Coming from n8n automation.
+    """
+    def clean(text):
+        if pd.isna(text): return ""
+        return str(text).strip()
+        # Get and transform all items
+    def strip_html(text):
+        return BeautifulSoup(text, "html.parser").get_text(separator=" ", strip=True)
+    # Extract rows from payload
+    rows: List[Dict[str, Any]] = payload["rows"]    # extract the list
+    processed = []
+    for row in rows:
+        # skip if missing required fields or marked for deletion
+        if (
+            pd.isna(row.get("Nombre")) or
+            pd.isna(row.get("Precio")) 
+            ##or bool(row.get("Eliminar"))
+        ):
+            continue
+
+        # build your record
+        record = {
+            "id":                   clean(row.get("Item ID")),
+            "product_name":         clean(row.get("Nombre")),
+            "bodega":               clean(row.get("Bodega")),
+            "tipo":                 clean(row.get("Tipo")),
+            "maridaje":             " y ".join(filter(None, [
+                                        clean(row.get("Maridaje 1")),
+                                        clean(row.get("Maridaje 2"))
+                                    ])),
+            "notas":                clean(row.get("Notas de cata")),
+            "descripcion":          strip_html(clean(row.get("Descripción"))),
+            "precio":               clean(row.get("Precio")),
+            "category":             clean(row.get("Pasillo")),
+            "gr_ml":                clean(row.get("Gr/ml")),
+            "ocasion":              clean(row.get("Ocasión")),
+            "slug":                 clean(row.get("Slug")),
+            "url":                  f"https://maestri.com.co/products/{clean(row.get('Slug'))}"
+                                   if row.get("Slug") else "",
+            "descuento":            bool(row.get("Descuento", False)),
+            "descuento_2x1":        bool(row.get("Descuento 2x1", False)),
+            "descuento_3x2":        bool(row.get("Descuento 3x2", False)),
+            "productoreserva":      bool(row.get("ProductoReserva", False)),
+            "descuento_off":        bool(row.get("Descuento%off", False)),
+            "url_imagen":           clean(row.get("Imagen del Producto") or ""),
+            "draft":                bool(row.get("Draft", False)),
+        }
+        processed.append(record)
+
+    # now build your dataframe
+    df = pd.DataFrame(processed)
+    return df
