@@ -110,6 +110,7 @@ def insert_sql(items):
     Function to insert products into SQL database.
     This function is a placeholder and should be implemented based on your SQL database schema.
     """
+    
     # Connect to MySQL once before the loop
     mysql_conn = pymysql.connect(
         host="62.72.7.225",
