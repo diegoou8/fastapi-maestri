@@ -8,3 +8,6 @@ python-dotenv
 openai
 pytest
 pymysql
+beautifulsoup4
+requests
+lxml
