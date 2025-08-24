@@ -68,7 +68,7 @@ category_mapping = {
     "cristaleria": "68426551cb9513e04fb7b846",
     "cajas": "66834c5bb2f187cbd0bc92de",
     "maestri-wine-club": "6663699bebde7a336c1c0fe5",
-    "vinos-de-la-casa": "66635db36d9753905f695788",
+    "vinos": "66635db36d9753905f695788",
     "anchetas": "6660caffc04494865e3bce5f",
     "panettone": "6660caf7ff352dfda277bca5",
     "pasta": "6660cae85768b4de8082734e",
