@@ -201,8 +201,8 @@ def insert_sql(items):
             INSERT INTO products (
                 id, product_name, bodega, tipo, precio, notas, descripcion, maridaje, category,
                 gr_ml, ocasion, url, url_imagen, descuento, descuento_2x1, descuento_3x2,
-                productoreserva, descuento_off, alternate_names
-            ) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
+                productoreserva, descuento_off, alternate_names,biologico
+            ) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s,%s)
             ON DUPLICATE KEY UPDATE
                 product_name = VALUES(product_name),
                 bodega = VALUES(bodega),
@@ -221,7 +221,7 @@ def insert_sql(items):
                 descuento_3x2 = VALUES(descuento_3x2),
                 productoreserva = VALUES(productoreserva),
                 descuento_off = VALUES(descuento_off),
-                alternate_names = VALUES(alternate_names)
+                alternate_names = VALUES(alternate_names),
                 biologico = VALUES(biologico)
         """
         mysql_cursor.execute(insert_sql, (
