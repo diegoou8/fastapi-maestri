@@ -5,3 +5,4 @@ service_account.json
 # Python
 __pycache__/
 *.pyc
+vps_test.py
