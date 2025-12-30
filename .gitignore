@@ -1,8 +1,12 @@
-# Secrets
-.env
-service_account.json
-
-# Python
 __pycache__/
-*.pyc
-vps_test.py
+**/*.py[cod]
+**/$py.class
+.venv/
+venv/
+ENV/
+.idea/
+.vscode/
+
+# Sensitive and large files
+service_account.json
+notebooks/InsertQdrant.ipynb
