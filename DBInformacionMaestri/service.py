@@ -24,6 +24,24 @@ qdrant_products = QdrantClient(host="qdrant", port=6333, https=False)
 collection_knowledge = "maestri_knowledge"
 collection_products = "maestri_products"
 
+# === Synonyms and Keywords
+SYNONYMS = {
+    "tinto": ["rosso", "tinto"],
+    "blanco": ["bianco", "blanco"],
+    "rosado": ["rosato", "rosado"],
+    "espumante": ["prosecco", "spumante", "espumoso"],
+    "barato": ["económico", "barato", "bajo precio", "asequible"],
+    "premium": ["alta gama", "exclusivo", "premium", "lujo"],
+    "casa": ["de la casa", "maestri milano", "maestri"]
+}
+
+def expand_query(query: str) -> List[str]:
+    expanded = query.lower().split()
+    for word, syns in SYNONYMS.items():
+        if word in query.lower():
+            expanded.extend(syns)
+    return list(set(expanded))
+
 # === Delayed initialization of OpenAI
 def initialize_model():
     global model
@@ -35,7 +53,7 @@ def initialize_model():
 
 # === Reranking logic
 def hybrid_rerank(results, query, vector, expanded_terms=None):
-    query_terms = query.lower().split()
+    query_expanded = expand_query(query)
     expanded_terms = [term.lower() for term in (expanded_terms or [])]
     reranked = []
 
@@ -43,25 +61,44 @@ def hybrid_rerank(results, query, vector, expanded_terms=None):
         base_score = np.dot(vector, r.vector)
         payload = {
             "product_name": str(r.payload.get("product_name", "")).lower(),
+            "bodega": str(r.payload.get("bodega", "")).lower(),
+            "denominacion": str(r.payload.get("denominacion", "")).lower(),
             "tipo": str(r.payload.get("tipo", "")).lower(),
             "category": str(r.payload.get("category", "")).lower(),
             "descripcion": str(r.payload.get("descripcion", "")).lower(),
-            "alternate_names": str(r.payload.get("alternate_names", "")).lower()
+            "alternate_names": str(r.payload.get("alternate_names", "")).lower(),
+            "precio_numeric": float(r.payload.get("precio_numeric", 0))
         }
 
         def match_score(terms, field, weight):
+            if not field: return 0
             return sum(1 for term in terms if re.search(rf"\b{re.escape(term)}\b", field)) * weight
 
         score = base_score
         for field, w_query, w_expand in [
-            ("product_name", 0.3, 0.7),
+            ("product_name", 0.5, 0.7),
+            ("bodega", 0.4, 0.5),
+            ("denominacion", 0.3, 0.4),
             ("tipo", 0.2, 0.4),
             ("category", 0.2, 0.4),
             ("descripcion", 0.1, 0.2),
             ("alternate_names", 0.1, 0.3)
         ]:
-            score += match_score(query_terms, payload[field], w_query)
-            score += match_score(expanded_terms, payload[field], w_expand)
+            if field in payload:
+                score += match_score(query_expanded, payload[field], w_query)
+                score += match_score(expanded_terms, payload[field], w_expand)
+        
+        # Boost House Wines
+        if "casa" in query.lower() or "recomend" in query.lower():
+            if "maestri" in payload["bodega"] or "casa" in payload["category"]:
+                score += 1.0
+        
+        # Boost Cheap Wines if intent is detected
+        if any(w in query.lower() for w in SYNONYMS["barato"]):
+            if payload["precio_numeric"] > 0:
+                # Add score inversely proportional to price (normalized roughly)
+                price_boost = max(0, (200000 - payload["precio_numeric"]) / 200000)
+                score += price_boost * 0.5
 
         reranked.append((score, r))
 
@@ -103,7 +140,7 @@ def run_query(request: QueryRequest) -> QueryResponse:
                             f"{k.replace('_', ' ').capitalize()}: {v}" 
                             for k, v in r.payload.items() 
                             if v and k in [
-                                "id", "product_name", "bodega", "tipo", "region", "precio", 
+                                "id", "product_name", "bodega", "tipo", "denominacion", "precio", 
                                 "notas", "maridaje", "descripcion", "url", "url_imagen"
                             ]
                         )
