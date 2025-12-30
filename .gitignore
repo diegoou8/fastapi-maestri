@@ -6,7 +6,7 @@ venv/
 ENV/
 .idea/
 .vscode/
-
+.env
 # Sensitive and large files
 service_account.json
 notebooks/InsertQdrant.ipynb

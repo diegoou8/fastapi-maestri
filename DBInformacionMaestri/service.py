@@ -9,6 +9,13 @@ from qdrant_client import QdrantClient
 from openai import OpenAI
 from dotenv import load_dotenv
 from fastapi import HTTPException
+import importlib.metadata
+
+try:
+    qdrant_version = importlib.metadata.version("qdrant-client")
+    print(f"📦 QdrantClient version: {qdrant_version}")
+except Exception:
+    print("📦 QdrantClient version: Unknown")
 from models.schemas import QueryRequest, QueryResponse
 
 # === Load environment variables
