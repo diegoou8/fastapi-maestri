@@ -1,5 +1,5 @@
 from fastapi import APIRouter, HTTPException, Request
-from LoadData.service import get_all_products, get_rows_sheet_products,sync_items_individually
+from LoadData.service import get_all_products, get_rows_sheet_products,sync_items_individually, sync_knowledge_from_sheet
 import json
 from typing import List, Dict, Any
 load_data_router = APIRouter()
@@ -62,3 +62,13 @@ async def sheet_products(request: Request):
     except Exception as e:
         import traceback; traceback.print_exc()
         raise HTTPException(status_code=500, detail=f"Read failed: {e}")
+
+@load_data_router.post("/sync-knowledge")
+def sync_knowledge():
+    try:
+        result = sync_knowledge_from_sheet()
+        return result
+    except Exception as e:
+        import traceback
+        traceback.print_exc()
+        raise HTTPException(status_code=500, detail=f"Knowledge sync failed: {str(e)}")

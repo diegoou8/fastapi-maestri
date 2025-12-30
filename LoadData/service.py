@@ -643,3 +643,51 @@ def google_merchant_upload():
             print(f"❌ Failed batch insert: {e}")
 
     upsert_products_to_merchant()
+def sync_knowledge_from_sheet():
+    \"\"\"
+    Sync business info from Google Sheets to Qdrant collection 'maestri_knowledge'.
+    \"\"\"
+    SPREADSHEET_ID = '1kahhXVs12upC_Z3LUUl5B8IcoThbDFTn4Ypp9WfFZqE'
+    RANGE_NAME = 'Sheet1!A2:B'
+    creds_path = r'C:\Users\dhernandez\OneDrive - Standards IT\Documents\GitHub\fastapi-maestri\service_account.json'
+    
+    creds = service_account.Credentials.from_service_account_file(creds_path, scopes=['https://www.googleapis.com/auth/spreadsheets.readonly'])
+    service = build('sheets', 'v4', credentials=creds)
+    
+    try:
+        result = service.spreadsheets().values().get(spreadsheetId=SPREADSHEET_ID, range=RANGE_NAME).execute()
+        values = result.get('values', [])
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f'Error reading Google Sheet: {str(e)}')
+
+    if not values:
+        return {'message': 'No data found in the Google Sheet.'}
+
+    documents = []
+    for row in values:
+        if len(row) >= 2 and row[0] and row[1]:
+            documents.append({'category': str(row[0]).strip(), 'text': str(row[1]).strip()})
+
+    if not documents:
+        return {'message': 'No valid data found.'}
+
+    load_dotenv()
+    openai_client = OpenAI(api_key=os.getenv('OPENAI_API_KEY'))
+    qdrant_client = QdrantClient(host='qdrant', port=6333, https=False)
+    
+    qdrant_client.recreate_collection(
+        collection_name='maestri_knowledge',
+        vectors_config=VectorParams(size=1536, distance=Distance.COSINE),
+    )
+
+    texts = [doc['text'] for doc in documents]
+    response = openai_client.embeddings.create(input=texts, model='text-embedding-3-small')
+    
+    points = [
+        PointStruct(id=str(uuid.uuid4()), vector=emb.embedding, payload=documents[i]) 
+        for i, emb in enumerate(response.data)
+    ]
+    
+    qdrant_client.upsert(collection_name='maestri_knowledge', points=points)
+    
+    return {'message': f'Successfully synced {len(points)} knowledge items.'}
