@@ -1,1 +1,13 @@
 .env
+__pycache__/
+**/*.py[cod]
+**/$py.class
+.venv/
+venv/
+ENV/
+.idea/
+.vscode/
+
+# Sensitive and large files
+service_account.json
+notebooks/InsertQdrant.ipynb

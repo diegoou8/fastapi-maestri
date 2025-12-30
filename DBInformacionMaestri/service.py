@@ -67,7 +67,7 @@ def hybrid_rerank(results, query, vector, expanded_terms=None):
             "category": str(r.payload.get("category", "")).lower(),
             "descripcion": str(r.payload.get("descripcion", "")).lower(),
             "alternate_names": str(r.payload.get("alternate_names", "")).lower(),
-            "precio_numeric": float(r.payload.get("precio_numeric", 0))
+            "precio_numeric": float(r.payload.get("precio_numeric") or 0)
         }
 
         def match_score(terms, field, weight):
