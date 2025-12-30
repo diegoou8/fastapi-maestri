@@ -21,7 +21,7 @@ async def sheet_products(request: Request):
     """
     Accepts:
       { "rows": […] }
-      { "body": "{\\"rows\\":[…]}" }  (n8n stringifies it)
+      { "body": "{\"rows\":[…]}" }  (n8n stringifies it)
       { "body": { "rows": […] } }     (n8n object wrapper)
     """
     try:
