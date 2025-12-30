@@ -61,28 +61,29 @@ fielddata_fields = [
     "descuento-3x2",
     "productoreserva",
     "descuento-off",
-    "Biologico"
+    "Biologico",
+    "denominacion"
 ]
 
-category_mapping = {
-    "cristaleria": "68426551cb9513e04fb7b846",
-    "cajas": "66834c5bb2f187cbd0bc92de",
-    "maestri-wine-club": "6663699bebde7a336c1c0fe5",
-    "vinos": "66635db36d9753905f695788",
-    "anchetas": "6660caffc04494865e3bce5f",
-    "panettone": "6660caf7ff352dfda277bca5",
-    "pasta": "6660cae85768b4de8082734e",
-    "galletas-italianas": "6660cad2b9bdd7371192e27a",
-    "carnes": "6660cab03742b98ef120b0ac",
-    "quesos": "6660ca3823741b8f165309d3",
-    "vinos": "6660ca3823741b8f165309d1",
-    "alimentos-gourmet": "6660ca3823741b8f165309cb",
-    "trufas": "6660ca3823741b8f165309c9",
-    "charcuteria": "6660ca3823741b8f165309c4",
-    "panettones": "6660caf7ff352dfda277bca5",
-}
+# Helper to fetch dynamic categories from Webflow
+def get_webflow_categories():
+    TOKEN = "026a04fef179155b6a04fbfd49e07c722e7621b91ad98961f6f298987c070180"
+    CAT_COLL_ID = "6660ca2d6fe3b376c15a6141" # 'Categorias' collection
+    url = f"https://api.webflow.com/v2/collections/{CAT_COLL_ID}/items"
+    headers = {"Authorization": f"Bearer {TOKEN}", "accept-version": "2.0.0"}
+    
+    resp = requests.get(url, headers=headers)
+    mapping = {}
+    if resp.status_code == 200:
+        items = resp.json().get("items", [])
+        for item in items:
+            name = item.get("fieldData", {}).get("name")
+            if name:
+                mapping[item.get("id")] = name
+    return mapping
 
-reverse_category_mapping = {v: k for k, v in category_mapping.items()}
+category_mapping = {} # Will be populated dynamically
+reverse_category_mapping = {} # Legacy fallback
 
 def get_all_webflow_items():
 
@@ -282,6 +283,9 @@ def get_all_products():
     # Create the DataFrame
     df = pd.DataFrame(flattened_data)
 
+    # Fetch dynamic category names
+    dynamic_mapping = get_webflow_categories()
+
     # Utility functions
     def clean(text):
         if pd.isna(text): return ""
@@ -317,13 +321,24 @@ def get_all_products():
         product_name = clean(row.get("name"))
         bodega = clean(row.get("bodega"))
         tipo = clean(row.get("tipo"))
+        denominacion = clean(row.get("denominacion"))
         maridaje1 = clean(row.get("maridaje-1"))
         maridaje2 = clean(row.get("maridaje-2"))
         maridaje = " y ".join([m for m in [maridaje1, maridaje2] if m])
         notas = clean(row.get("notas-de-cata"))
         descripcion = strip_html(clean(row.get("descripcion")))
-        precio = clean(row.get("precio"))
-        category = reverse_category_mapping.get(clean(row.get("categories")).lower(), clean(row.get("categories")))
+        
+        # ✅ Clean and Parse numeric price
+        precio_raw = clean(row.get("precio"))
+        try:
+            precio_numeric = float(precio_raw.replace(",", "").replace("$", "")) if precio_raw else 0.0
+        except:
+            precio_numeric = 0.0
+        
+        # ✅ Dynamic Category
+        cat_id = clean(row.get("categories"))
+        category = dynamic_mapping.get(cat_id, cat_id)
+
         gr_ml = clean(row.get("gr-ml"))
         ocasion = clean(row.get("ocasion"))
         slug = clean(row.get("slug"))
@@ -339,12 +354,27 @@ def get_all_products():
         if pd.isna(url_imagen):
             url_imagen = ""
 
-        alternate_names = ""
+        # ✅ Semantic Enrichment
+        semantic_tags = []
+        # Price Tiers
+        if precio_numeric > 0:
+            if precio_numeric < 80000:
+                semantic_tags.append("Vino económico, precio bajo, barato, accesible")
+            elif precio_numeric < 200000:
+                semantic_tags.append("Vino de precio medio, buena relación calidad-precio")
+            else:
+                semantic_tags.append("Vino premium, alta gama, exclusivo, lujo")
+        
+        # House Wine Check (Category ID: 66635db36d9753905f695788)
+        if cat_id == "66635db36d9753905f695788":
+            semantic_tags.append("Vino de la casa, recomendación especial de Maestri Milano")
 
-        short_text = f"""Producto: {product_name}. Tipo: {tipo}. Bodega: {bodega}. Categoría: {category}. Contenido: {gr_ml}.
-        Maridaje: {maridaje}. Notas: {notas}. Descripción: {descripcion}.También conocido como: {alternate_names}. 
-        Precio: {precio}. Ocasion: {ocasion}. Biologico: {biologico}. 
-        """
+        alternate_names = ""
+        tags_text = ". ".join(semantic_tags)
+
+        short_text = f"Producto: {product_name}. Tipo: {tipo}. Bodega: {bodega}. Origen: {denominacion}. Categoría: {category}. Contenido: {gr_ml}. "
+        short_text += f"Maridaje: {maridaje}. Notas: {notas}. Descripción: {descripcion}. {tags_text}. "
+        short_text += f"También conocido como: {alternate_names}. Precio: {precio_raw}. Ocasion: {ocasion}. Biologico: {biologico}."
 
         if not short_text.strip():
             continue
@@ -358,7 +388,9 @@ def get_all_products():
             "product_name": product_name,
             "bodega": bodega,
             "tipo": tipo,
-            "precio": precio,
+            "denominacion": denominacion,
+            "precio": precio_raw,
+            "precio_numeric": precio_numeric,
             "notas": notas,
             "descripcion": descripcion,
             "maridaje": maridaje,
@@ -375,7 +407,6 @@ def get_all_products():
             "alternate_names": alternate_names,
             "url_imagen": url_imagen
         }
-
 
         points.append(PointStruct(id=str(uuid.uuid4()), vector=vector, payload=payload))
 
@@ -644,9 +675,9 @@ def google_merchant_upload():
 
     upsert_products_to_merchant()
 def sync_knowledge_from_sheet():
-    \"\"\"
+    """
     Sync business info from Google Sheets to Qdrant collection 'maestri_knowledge'.
-    \"\"\"
+    """
     SPREADSHEET_ID = '1kahhXVs12upC_Z3LUUl5B8IcoThbDFTn4Ypp9WfFZqE'
     RANGE_NAME = 'Sheet1!A2:B'
     creds_path = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "service_account.json"))
