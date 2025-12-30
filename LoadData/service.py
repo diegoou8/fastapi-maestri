@@ -521,7 +521,7 @@ def google_merchant_upload():
 
     MERCHANT_ID = "441343742"   
 
-    SERVICE_ACCOUNT_FILE = r"C:\Users\dhernandez\OneDrive - Standards IT\Documents\GitHub\fastapi-maestri\service_account.json"
+    SERVICE_ACCOUNT_FILE = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "service_account.json"))
     SCOPES = ["https://www.googleapis.com/auth/content"]
 
     credentials = service_account.Credentials.from_service_account_file(
@@ -649,7 +649,7 @@ def sync_knowledge_from_sheet():
     \"\"\"
     SPREADSHEET_ID = '1kahhXVs12upC_Z3LUUl5B8IcoThbDFTn4Ypp9WfFZqE'
     RANGE_NAME = 'Sheet1!A2:B'
-    creds_path = r'C:\Users\dhernandez\OneDrive - Standards IT\Documents\GitHub\fastapi-maestri\service_account.json'
+    creds_path = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "service_account.json"))
     
     creds = service_account.Credentials.from_service_account_file(creds_path, scopes=['https://www.googleapis.com/auth/spreadsheets.readonly'])
     service = build('sheets', 'v4', credentials=creds)

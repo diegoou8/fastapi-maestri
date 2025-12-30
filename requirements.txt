@@ -1,6 +1,6 @@
 fastapi
 uvicorn
-qdrant-client==1.14.
+qdrant-client
 sentence-transformers
 numpy
 pandas
@@ -11,3 +11,5 @@ pymysql
 beautifulsoup4
 requests
 lxml
+google-api-python-client
+google-auth
