@@ -9,13 +9,6 @@ from qdrant_client import QdrantClient
 from openai import OpenAI
 from dotenv import load_dotenv
 from fastapi import HTTPException
-import importlib.metadata
-
-try:
-    qdrant_version = importlib.metadata.version("qdrant-client")
-    print(f"📦 QdrantClient version: {qdrant_version}")
-except Exception:
-    print("📦 QdrantClient version: Unknown")
 from models.schemas import QueryRequest, QueryResponse
 
 # === Load environment variables
@@ -100,12 +93,36 @@ def hybrid_rerank(results, query, vector, expanded_terms=None):
             if "maestri" in payload["bodega"] or "casa" in payload["category"]:
                 score += 1.0
         
+        # "Category Smart" Logic: Detect Intent based on keywords
+        category_intent = None
+        if "vino" in query.lower() or any(w in query.lower() for w in ["tinto", "blanco", "rosado", "espumante", "rosso", "bianco"]):
+            category_intent = "vinos"
+        elif any(w in query.lower() for w in ["fuet", "quijote", "chorizo", "salami", "charcuteria", "jamon"]):
+            category_intent = "charcuteria"
+        elif "queso" in query.lower() or "parmesano" in query.lower() or "pecorino" in query.lower():
+            category_intent = "quesos"
+        elif "trufa" in query.lower():
+            category_intent = "trufas"
+        elif "pasta" in query.lower():
+            category_intent = "pasta"
+
+        # Accessory check
+        is_accessory_query = any(w in query.lower() for w in ["caja", "estuche", "ancheta", "regalo", "copa", "cristaleria"])
+
+        # Apply Intent Boosting
+        if category_intent:
+            # Boost if category matches intent
+            if category_intent in payload["category"]:
+                score += 2.0
+            # Penalize accessories if they show up in food/drink intent queries
+            elif not is_accessory_query and any(ac in payload["category"] or ac in payload["product_name"] for ac in ["caja", "ancheta", "regalo"]):
+                score -= 3.0
+        
         # Boost Cheap Wines if intent is detected
         if any(w in query.lower() for w in SYNONYMS["barato"]):
             if payload["precio_numeric"] > 0:
-                # Add score inversely proportional to price (normalized roughly)
                 price_boost = max(0, (200000 - payload["precio_numeric"]) / 200000)
-                score += price_boost * 0.5
+                score += price_boost * 1.0 # Significant weight for price intent
 
         reranked.append((score, r))
 
@@ -137,8 +154,8 @@ def run_query(request: QueryRequest) -> QueryResponse:
             def format_product_payload(p):
                 return {
                     k: v for k, v in p.items() if k in [
-                        "id", "product_name", "bodega", "tipo", "region", "precio",
-                        "notas", "maridaje", "descripcion", "url", "url_imagen"
+                        "id", "product_name", "bodega", "tipo", "denominacion", "precio",
+                        "notas", "maridaje", "descripcion", "url", "url_imagen", "category"
                     ] and v
                 }
 
@@ -148,7 +165,7 @@ def run_query(request: QueryRequest) -> QueryResponse:
                             for k, v in r.payload.items() 
                             if v and k in [
                                 "id", "product_name", "bodega", "tipo", "denominacion", "precio", 
-                                "notas", "maridaje", "descripcion", "url", "url_imagen"
+                                "notas", "maridaje", "descripcion", "url", "url_imagen", "category"
                             ]
                         )
                         for r in reranked
